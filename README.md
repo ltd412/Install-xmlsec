@@ -110,3 +110,75 @@ Disable this behaviour by setting HOMEBREW_NO_INSTALL_CLEANUP.
 Hide these hints with HOMEBREW_NO_ENV_HINTS (see `man brew`).
 Removing: /Users/daniel/Library/Caches/Homebrew/libxmlsec1--1.2.37... (1.2MB)
 ```
+
+**-----------------------------------------------------------------------------------------------------------------------------------------**
+
+# Fix error icu4c
+import xmlsec ImportError: dlopen(/xxx/venv/lib/python3.11/site-packages/xmlsec.cpython-311-darwin.so, 0x0002): Library not loaded: /opt/homebrew/opt/icu4c/lib/libicui18n.73.dylib ...
+
+##### This problem appears when icu4c is updated to a version other than 73 or 73.2
+
+### step 1: Uninstall lib
+```
+brew uninstall harfbuzz libass libxml2 libxmlsec1 node pango tesseract icu4c
+```
+
+### step 2: Create icu4c.rb
+```
+class Icu4c < Formula
+  desc "C/C++ and Java libraries for Unicode and globalization"
+  homepage "https://icu.unicode.org/home"
+  url "https://github.com/unicode-org/icu/releases/download/release-73-2/icu4c-73_2-src.tgz"
+  version "73.2"
+  sha256 "818a80712ed3caacd9b652305e01afc7fa167e6f2e94996da44b90c2ab604ce1"
+  license "ICU"
+
+  livecheck do
+    url :stable
+    regex(/^release[._-]v?(\d+(?:[.-]\d+)+)$/i)
+    strategy :git do |tags, regex|
+      tags.filter_map { |tag| tag[regex, 1]&.tr("-", ".") }
+    end
+  end
+
+  keg_only :provided_by_macos, "macOS provides libicucore.dylib (but nothing else)"
+
+  def install
+    args = %w[
+      --disable-samples
+      --disable-tests
+      --enable-static
+      --with-library-bits=64
+    ]
+
+    cd "source" do
+      system "./configure", *args, *std_configure_args
+      system "make"
+      system "make", "install"
+    end
+  end
+
+  test do
+    if File.exist? "/usr/share/dict/words"
+      system "#{bin}/gendict", "--uchars", "/usr/share/dict/words", "dict"
+    else
+      (testpath/"hello").write "hello\nworld\n"
+      system "#{bin}/gendict", "--uchars", "hello", "dict"
+    end
+  end
+end
+```
+
+### step 3: Run command
+- Remove all home brew cache
+  ```
+  brew cleanup --prune=all
+  ```
+
+- Install icu4c ver 73.2 with rb file
+  ```
+  brew install --build-from-source icu4c.rb 
+  ```
+
+### step 4
+Go to top readme file and reinstall **libxmlsec1**
