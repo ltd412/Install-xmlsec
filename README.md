@@ -1,3 +1,15 @@
+## Error 
+```toml
+/bin/bash: line 1: export: `=::=::\': not a valid identifier
+```
+```toml
+Open a built-in IDE Registry (Help > Find action > "Registry");
+
+Untick wsl.use.remote.agent.for.launch.processes option.
+```
+
+
+
 # Install xmlsec
 Fix Failed building wheel for xmlsec
 
